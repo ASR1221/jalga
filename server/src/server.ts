@@ -6,17 +6,13 @@ import helmet from "helmet";
 import compression from "compression";
 import dotenv from "dotenv";
 import logger from "morgan";
+import cors from 'cors';
 
 import { SocketUser } from "./types/types";
 import { WIN_ARRAYS } from "./constants/constants";
 
 const app = express();
 const server = createServer(app);
-const io = new Server(server, {
-   cors: {
-      origin: "*",
-   }
-});
 
 // Development imports
 if (process.env.NODE_ENV !== "production") {
@@ -29,10 +25,17 @@ app.use(helmet());
 app.use(helmet.hidePoweredBy());
 app.use(compression());
 app.use(express.json());
+app.use(cors());
 // app.use(express.static("public"));
 
 // routes
 // app.use("/", router);
+
+const io = new Server(server, {
+   cors: {
+      origin: "*",
+   }
+});
 
 // Handling 404 (Not found)
 app.use((req: Request, res: Response, next: NextFunction) => {
@@ -47,7 +50,7 @@ io.on("connection", (socket) => {
    
    let player1: SocketUser | null = null;
    let player2: SocketUser | null = null;
-   let turns = 0;
+   let turns = 1;
    let gameEnded = false;
 
    socket.on("join-room", (room) => {
@@ -63,9 +66,8 @@ io.on("connection", (socket) => {
       if (clientsInRoom === 2) {
          player2 = {
             userId: socket.id,
-         }
-         turns = 1;
-         socket.to(room).emit("game-start", turns);
+         };
+         socket.to(room).emit("game-start");
       } else if (clientsInRoom === 1) {
          player1 = {
             userId: socket.id,
@@ -74,25 +76,27 @@ io.on("connection", (socket) => {
    });
 
    socket.on("request-change", (room, playerObj) => {
+
       let isError = false;
-      if (typeof room !== "string" || room.trim()) return;
+      if (!(room && room.trim())) return;
 
       if (!(playerObj || playerObj.userId || (playerObj.onBoardPieces && playerObj.onBoardPieces.length === 3) || playerObj.offBoardPieces)) return;
 
-      if (turns === 0) return;
+      if (!(turns === 1 || turns === 2)) return;
 
-      if (turns === 1 && playerObj.userId !== player1?.userId) return;
-      if (turns === 2 && playerObj.userId !== player2?.userId) return;
-
-      playerObj.onBoardPieces.forEach((ele: number, i: number) => {
-         if (playerObj.userId === player1?.userId && player2 && player2.onBoardPieces && ele === player2.onBoardPieces[i]) {
-            socket.to(room).emit("not-allowed", playerObj.userId);
-            isError = true;
-         } else if (playerObj.userId === player2?.userId && player1 && player1.onBoardPieces && ele === player1.onBoardPieces[i]) {
-            socket.to(room).emit("not-allowed", playerObj.userId);
-            isError = true;
-         }
-      });
+      // for (let i = 0; i < playerObj.onBoardPieces.length; i++) {
+      //    const ele = playerObj.onBoardPieces[i];
+         
+      //    if (playerObj.userId === player1?.userId && player2 && player2.onBoardPieces && ele === player2.onBoardPieces[i]) {
+      //       socket.to(room).emit("not-allowed", playerObj.userId);
+      //       isError = true;
+      //       return;
+      //    } else if (playerObj.userId === player2?.userId && player1 && player1.onBoardPieces && ele === player1.onBoardPieces[i]) {
+      //       socket.to(room).emit("not-allowed", playerObj.userId);
+      //       isError = true;
+      //       return;
+      //    }
+      // }
 
       if (isError) return;
 
@@ -100,21 +104,24 @@ io.on("connection", (socket) => {
       if (turns === 2) turns = 1;
 
       
-      WIN_ARRAYS.forEach(arr => {
+      for (let j = 0; j < WIN_ARRAYS.length; j++) {
+         const arr = WIN_ARRAYS[j];
+         
          let isWin = true;
-         arr.forEach((ele, i) => {
+         for (let i = 0; i < arr.length; i++) {
+            const ele = arr[i];
             if (ele !== playerObj.onBoardPieces[i]) {
-               isWin === false;
+               isWin = false;
                socket.to(room).emit("state-change", playerObj, turns);
-               return;
+               break;
             }
-         });
+         }
          if (isWin) {
             socket.to(room).emit("state-change", playerObj, turns, playerObj.userId);
             gameEnded = true;
-            return;
+            break;
          }
-      });
+      }
 
    });
 
@@ -141,4 +148,8 @@ io.on("connection", (socket) => {
 
 });
 
+// socker port
+server.listen(process.env.PORT || 4000);
+
+// server port
 app.listen(process.env.PORT || 3000);
