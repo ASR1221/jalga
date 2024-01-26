@@ -48,6 +48,7 @@ io.on("connection", (socket) => {
    let player1: SocketUser | null = null;
    let player2: SocketUser | null = null;
    let turns = 0;
+   let gameEnded = false;
 
    socket.on("join-room", (room) => {
 
@@ -110,6 +111,7 @@ io.on("connection", (socket) => {
          });
          if (isWin) {
             socket.to(room).emit("state-change", playerObj, turns, playerObj.userId);
+            gameEnded = true;
             return;
          }
       });
@@ -119,8 +121,10 @@ io.on("connection", (socket) => {
    socket.on("game-restart", (room) => {
       
       if (typeof room !== "string" || room.trim()) return;
+      if (!gameEnded) return;
 
       turns = 1;
+      gameEnded = false;
       if (player1) {
          player1.offBoardPieces = 3;
          player1.onBoardPieces = [0, 0, 0];
