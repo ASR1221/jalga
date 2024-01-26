@@ -1,3 +1,5 @@
+import { Request } from "express";
+
 export type SocketUser = {
    userId: string,
    onBoardPieces?: number[],
@@ -5,3 +7,6 @@ export type SocketUser = {
    yourTurn?: boolean,
 }
 
+export interface CustomError extends Error {
+   status?: number,
+}

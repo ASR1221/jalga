@@ -10,6 +10,7 @@ import cors from 'cors';
 
 import { SocketUser } from "./types/types";
 import { WIN_ARRAYS } from "./constants/constants";
+import router from "./routes/userRoute";
 
 const app = express();
 const server = createServer(app);
@@ -29,8 +30,9 @@ app.use(cors());
 // app.use(express.static("public"));
 
 // routes
-// app.use("/", router);
+app.use("/api", router);
 
+// socket connection
 const io = new Server(server, {
    cors: {
       origin: "*",
