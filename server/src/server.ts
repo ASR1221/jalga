@@ -69,7 +69,7 @@ io.on("connection", (socket) => {
          player2 = {
             userId: socket.id,
          };
-         socket.to(room).emit("game-start");
+         socket.to(room).emit("game-start", socket.id);
       } else if (clientsInRoom === 1) {
          player1 = {
             userId: socket.id,
