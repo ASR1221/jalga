@@ -1,4 +1,4 @@
-import express, { NextFunction, Request, Response } from "express";
+import express, { NextFunction, Response } from "express";
 
 import { createServer } from 'http';
 import { Server } from "socket.io";
@@ -40,12 +40,12 @@ const io = new Server(server, {
 });
 
 // Handling 404 (Not found)
-app.use((req: Request, res: Response, next: NextFunction) => {
+app.use((req, res, next) => {
    res.status(404).json({ message: "Route not found." });
 });
 
 // Error handler
-app.use((err: any, req: Request, res: Response, next: NextFunction) => res.status(err.status || 500).json({ message: err.message }));
+app.use((err: any, req: any, res: Response, next: NextFunction) => res.status(err.status || 500).json({ message: err.message }));
 
 // socket handling
 io.on("connection", (socket) => {
